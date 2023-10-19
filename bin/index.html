@@ -1,0 +1,103 @@
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <style type="text/css">
+            html          { height:100%; background-color:#272822; color:#ffffff; }
+            body          { height:100%; margin:0px; }
+            input         { height:20px; border:1px solid #272822; background-color:#272822; color:#666666; font-size:10px; }
+            input:hover   { color:#999999; }
+            input:active  { color:#777777; }
+            pre           { height:auto; overflow:auto; font-size:12px; white-space:pre-wrap; word-wrap: break-word; margin:4px 6px 6px 6px; border:0px solid #272822; }
+            #box          { float:right; margin:0px; color:#272822; }
+        </style>
+        <script type="text/javascript" src="li17_core.js"></script>
+        <script type="text/javascript" src="li17_api.js"></script>
+        <script type="text/javascript">
+            function cls()
+            {
+                document.getElementById("text").innerHTML = "";
+            }
+            function log(text)
+            {
+                document.getElementById("text").innerHTML += text + "\n";
+            }
+            function test()
+            {
+                cls();
+
+                var t1 = Date.now();
+
+                var msg32         = "4a2d6a86fc1bd9421f78ab5eb3805f7ebf9dc8480c25a86141e4712810ea0102";
+                var private_key1  = "df1a627fd5ec89eaed03fd1ab246c414b8e8d57538d330e8a281137c75b88d36";
+                var private_key2  = "0ac7d64995c6b4daac2688c0e40d25af50887ada5b7a4cbe197ada0bdef32375";
+                var public_key    = "045ae6d14d4934eeb004b818d687a1ea6efff0946d043dfb9338c0601a1ae0387fd00bfcefeff11961a48edc66f62ad87feed8a9ef157efa294c91466c70039bbe";
+
+                // refresh
+                var p1            = li17_p1_context(private_key1, public_key);
+                var p2            = li17_p2_context(private_key2, public_key);
+                var zk_proof1     = li17_p1_refresh_send_zk_proof(p1);
+                var private_key2_ = li17_p2_refresh_recv_zk_proof(p2, zk_proof1);
+                var zk_proof2     = li17_p2_refresh_send_zk_proof(p2);
+                var private_key1_ = li17_p1_refresh_recv_zk_proof(p1, zk_proof2);
+
+                // context
+                var p1_context    = li17_p1_context(private_key1_, null);
+                var p2_context    = li17_p2_context(private_key2_, null);
+
+                // keygen
+                var p1_hash_proof = li17_p1_keygen_send_hash_proof(p1_context);
+                p2_context        = li17_p2_keygen_recv_hash_proof(p2_context, p1_hash_proof);
+                var p2_zk_proof   = li17_p2_keygen_send_zk_proof(p2_context);
+                p1_context        = li17_p1_keygen_recv_zk_proof(p1_context, p2_zk_proof);
+                var p1_zk_proof   = li17_p1_keygen_send_zk_proof(p1_context);
+                p2_context        = li17_p2_keygen_recv_zk_proof(p2_context, p1_zk_proof);
+
+                var v1_public_key = li17_p1_public_key(p1_context);
+                var v2_public_key = li17_p2_public_key(p2_context);
+
+                if (v1_public_key == v2_public_key)
+                {
+                    if (public_key == v1_public_key)
+                    {
+                        log("private_key1 : " + private_key1 + " => " + private_key1_);
+                        log("private_key2 : " + private_key2 + " => " + private_key2_);
+                        log("  public_key : " + public_key);
+                    }
+                    else
+                    {
+                        log("private_key1 : " + private_key1_);
+                        log("private_key2 : " + private_key2_);
+                        log("  public_key : " + v1_public_key);
+                    }
+
+                    // signature
+                    var request       = li17_p1_signature_send_signature_request(p1_context);
+                    p2_context        = li17_p2_signature_recv_signature_request(p2_context, request);
+                    var p2_signature  = li17_p2_signature_send_signature_partial(p2_context, msg32);
+                    var signature     = li17_p1_signature_recv_signature_partial(p1_context, p2_signature, msg32);
+
+
+                    log("         msg : " + msg32);
+                    log("   signature : " + signature);
+                }
+                else
+                {
+                    log("private_key1 : " + private_key1);
+                    log("private_key2 : " + private_key2);
+                    log("  public_key : " + public_key);
+                    log("         msg : " + msg32);
+                    log("   signature : " + "null");
+                }
+
+                var t2 = Date.now();
+                var d = t2 - t1;
+
+                log("        time : " + d + "ms");
+
+            }
+        </script>
+        <body>
+            <input type="button" onclick="test();"  value="测试用例" />
+            <pre id="text"></pre>
+        </body>
+</html>
